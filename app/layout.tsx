@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   },
   description: "Cluster Club makes premium Belgian chocolate nut clusters with over 50% walnuts, almonds and hazelnuts. Cocoa Horizons certified. As seen on Aldi's Next Big Thing.",
   keywords: ["chocolate nut clusters", "Belgian chocolate snacks", "healthy chocolate snacks", "nut clusters UK", "Cluster Club", "premium snacks UK"],
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icon.png",
+  },
   openGraph: {
     type: "website",
     siteName: "Cluster Club",
