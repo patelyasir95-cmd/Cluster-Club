@@ -1,4 +1,5 @@
-export const onRequest: PagesFunction = async (context) => {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export const onRequest = async (context: any) => {
   const { request, env } = context;
 
   if (request.method !== "POST") {
@@ -20,14 +21,6 @@ export const onRequest: PagesFunction = async (context) => {
 
     const apiKey = env.MAILERLITE_API_KEY;
 
-    if (!apiKey) {
-      console.error("MAILERLITE_API_KEY not set");
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     try {
       await fetch("https://connect.mailerlite.com/api/subscribers", {
         method: "POST",
@@ -38,10 +31,7 @@ export const onRequest: PagesFunction = async (context) => {
         },
         body: JSON.stringify({
           email,
-          fields: {
-            name,
-            last_name: "",
-          },
+          fields: { name, last_name: "" },
           groups: ["184584279598040389"],
         }),
       });
