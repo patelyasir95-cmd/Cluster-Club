@@ -1,0 +1,3 @@
+module.exports=[25940,a=>{"use strict";var b=a.i(7997);a.s(["default",0,function({children:a}){return(0,b.jsx)(b.Fragment,{children:a})},"metadata",0,{title:"Contact",description:"Got a question, a flavour idea, or feedback? Get in touch with the Cluster Club team. We're a small team — you'll hear from a real person.",openGraph:{title:"Contact | Cluster Club",description:"Got a question or flavour idea? Get in touch — you'll hear from a real person.",url:"https://clusterclub.co.uk/contact"},alternates:{canonical:"https://clusterclub.co.uk/contact"}}])},79668,a=>{a.n(a.i(25940))}];
+
+//# sourceMappingURL=app_contact_layout_tsx_0503xqa._.js.map

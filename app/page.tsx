@@ -1,65 +1,79 @@
-import Image from "next/image";
+import Nav from "@/components/Nav";
+import Hero from "@/components/Hero";
+import UspTicker from "@/components/UspTicker";
+import ProductGrid from "@/components/ProductGrid";
+import AldiWin from "@/components/AldiWin";
+import WhereToBuy from "@/components/WhereToBuy";
+import FAQ from "@/components/FAQ";
+import SocialFeed from "@/components/SocialFeed";
+import Footer from "@/components/Footer";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://clusterclub.co.uk/#organization",
+      name: "Cluster Club",
+      url: "https://clusterclub.co.uk",
+      logo: "https://clusterclub.co.uk/logo.png",
+      sameAs: ["https://www.instagram.com/theclusterclub"],
+      description: "Cluster Club makes premium Belgian chocolate nut clusters with over 50% walnuts, almonds and hazelnuts. Cocoa Horizons certified. As seen on Aldi's Next Big Thing.",
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://clusterclub.co.uk/#website",
+      url: "https://clusterclub.co.uk",
+      name: "Cluster Club",
+      publisher: { "@id": "https://clusterclub.co.uk/#organization" },
+    },
+    {
+      "@type": "Product",
+      name: "Milk Chocolate Nut Clusters",
+      brand: { "@id": "https://clusterclub.co.uk/#organization" },
+      description: "Belgian milk chocolate nut clusters with walnuts, almonds and hazelnuts. Over 50% nuts. Source of fibre.",
+      image: "https://clusterclub.co.uk/pouch-milk.png",
+      url: "https://clusterclub.co.uk/#products",
+    },
+    {
+      "@type": "Product",
+      name: "White Chocolate & Cranberry Nut Clusters",
+      brand: { "@id": "https://clusterclub.co.uk/#organization" },
+      description: "Belgian white chocolate and cranberry nut clusters with walnuts, almonds and hazelnuts. Over 50% nuts. Source of fibre.",
+      image: "https://clusterclub.co.uk/pouch-white.png",
+      url: "https://clusterclub.co.uk/#products",
+    },
+    {
+      "@type": "Product",
+      name: "Orange Milk Chocolate Nut Clusters",
+      brand: { "@id": "https://clusterclub.co.uk/#organization" },
+      description: "Belgian orange milk chocolate nut clusters with walnuts, almonds and hazelnuts. Over 50% nuts. Source of fibre.",
+      image: "https://clusterclub.co.uk/pouch-orange.png",
+      url: "https://clusterclub.co.uk/#products",
+    },
+  ],
+};
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <Nav />
+      <main>
+        <Hero />
+        <UspTicker />
+        <ProductGrid />
+        <AldiWin />
+        <WhereToBuy />
+        <section id="faq">
+          <FAQ />
+        </section>
+        <SocialFeed />
       </main>
-    </div>
+      <Footer />
+    </>
   );
 }
