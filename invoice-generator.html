@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Invoice Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Inter', sans-serif; background: #F5F2E8; color: #2C1A0E; margin: 0; }
+    input, textarea, select { font-family: 'Inter', sans-serif; }
+    input[type="number"] { -moz-appearance: textfield; }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(44,26,14,0.2); border-radius: 2px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.8s linear infinite; display: inline-block; }
+    .lbl { display:block; font-size:10px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:rgba(44,26,14,0.55); margin-bottom:5px; }
+    .inp { width:100%; background:white; border:1px solid rgba(44,26,14,0.12); color:#2C1A0E; padding:8px 10px; font-size:13px; outline:none; transition:border-color 0.15s; border-radius:0; -webkit-appearance:none; }
+    .inp:focus { border-color:#E8771A; }
+    .inp::placeholder { color:rgba(44,26,14,0.25); }
+    .section { margin-bottom:26px; }
+    .sec-hdr { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .sec-title { font-size:10px; font-weight:700; letter-spacing:0.25em; text-transform:uppercase; color:#E8771A; white-space:nowrap; }
+    .sec-line { flex:1; height:1px; background:rgba(44,26,14,0.08); }
+    @media (min-width: 768px) {
+      #edit-panel { display: block !important; width: 380px !important; }
+      #preview-panel { display: flex !important; }
+      #tab-switcher { display: none !important; }
+      #main-body { flex-direction: row !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div style="background:#2C1A0E;position:sticky;top:0;z-index:50;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+  <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;">
+    <span style="font-family:'Fredoka One',sans-serif;color:white;font-size:14px;white-space:nowrap;">Invoice Generator</span>
+    <div style="display:flex;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;flex-shrink:0;">
+      <button id="btn-invoice" onclick="setType('INVOICE')"
+        style="padding:5px 10px;font-size:9px;font-weight:700;letter-spacing:0.12em;background:#E8771A;color:white;border:none;cursor:pointer;">
+        INVOICE
+      </button>
+      <button id="btn-proforma" onclick="setType('PROFORMA INVOICE')"
+        style="padding:5px 10px;font-size:9px;font-weight:700;letter-spacing:0.12em;background:transparent;color:rgba(255,255,255,0.4);border:none;cursor:pointer;">
+        PROFORMA
+      </button>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+    <div id="tab-switcher" style="display:flex;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+      <button id="tab-edit-btn" onclick="showTab('edit')"
+        style="padding:6px 9px;font-size:9px;font-weight:700;letter-spacing:0.1em;background:#E8771A;color:white;border:none;cursor:pointer;">
+        EDIT
+      </button>
+      <button id="tab-preview-btn" onclick="showTab('preview')"
+        style="padding:6px 9px;font-size:9px;font-weight:700;letter-spacing:0.1em;background:transparent;color:rgba(255,255,255,0.4);border:none;cursor:pointer;">
+        PREVIEW
+      </button>
+    </div>
+    <button id="pdf-btn" onclick="downloadPDF()"
+      style="background:#E8771A;color:white;font-size:9px;font-weight:700;letter-spacing:0.15em;padding:8px 12px;border:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;">
+      <span id="pdf-icon">&#8595;</span> SAVE PDF
+    </button>
+  </div>
+</div>
+
+<!-- MAIN BODY -->
+<div id="main-body" style="display:flex;min-height:calc(100vh - 52px);">
+
+  <!-- EDITOR -->
+  <div id="edit-panel" style="width:100%;overflow-y:auto;background:#F5F2E8;padding:18px 14px;flex-shrink:0;border-right:1px solid rgba(44,26,14,0.08);">
+
+    <!-- Branding -->
+    <div class="section">
+      <div class="sec-hdr"><span class="sec-title">Branding</span><div class="sec-line"></div></div>
+      <label class="lbl">Logo</label>
+      <div id="logo-zone" onclick="document.getElementById('logo-input').click()"
+        style="border:1px dashed rgba(44,26,14,0.2);background:white;padding:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;min-height:76px;gap:6px;transition:border-color 0.15s;">
+        <div id="logo-ph" style="text-align:center;">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" style="opacity:0.3;display:block;margin:0 auto 3px;">
+            <path d="M12 16V8m0 0L9 11m3-3 3 3" stroke="#2C1A0E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="#2C1A0E" stroke-width="1.5"/>
+          </svg>
+          <span style="font-size:9px;color:rgba(44,26,14,0.3);letter-spacing:0.15em;text-transform:uppercase;">Upload Logo</span>
+        </div>
+        <img id="logo-img" style="display:none;max-height:52px;max-width:150px;object-fit:contain;" />
+      </div>
+      <input type="file" id="logo-input" accept="image/*" style="display:none;" onchange="handleLogo(event)" />
+      <button id="logo-rm" onclick="removeLogo()" style="display:none;margin-top:5px;font-size:9px;color:rgba(44,26,14,0.35);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;padding:0;">Remove logo</button>
+
+      <div style="margin-top:10px;">
+        <label class="lbl">Currency</label>
+        <div style="display:flex;gap:6px;">
+          <button onclick="setCurrency('£')" data-c="£" class="cbtn" style="flex:1;padding:7px;font-size:14px;font-weight:700;border:1px solid rgba(44,26,14,0.12);background:#2C1A0E;color:white;cursor:pointer;">£</button>
+          <button onclick="setCurrency('€')" data-c="€" class="cbtn" style="flex:1;padding:7px;font-size:14px;font-weight:700;border:1px solid rgba(44,26,14,0.12);background:white;color:rgba(44,26,14,0.35);cursor:pointer;">€</button>
+          <button onclick="setCurrency('$')" data-c="$" class="cbtn" style="flex:1;padding:7px;font-size:14px;font-weight:700;border:1px solid rgba(44,26,14,0.12);background:white;color:rgba(44,26,14,0.35);cursor:pointer;">$</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invoice Details -->
+    <div class="section">
+      <div class="sec-hdr"><span class="sec-title">Invoice Details</span><div class="sec-line"></div></div>
+      <div style="margin-bottom:8px;">
+        <label class="lbl">Invoice Number</label>
+        <input class="inp" type="text" id="f-num" value="INV-001" oninput="S.invoiceNumber=this.value;rp()" placeholder="INV-001" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <label class="lbl">Issue Date</label>
+          <input class="inp" type="date" id="f-issue" oninput="S.issueDate=this.value;rp()" />
+        </div>
+        <div>
+          <label class="lbl">Due Date</label>
+          <input class="inp" type="date" id="f-due" oninput="S.dueDate=this.value;rp()" />
+        </div>
+      </div>
+      <div>
+        <label class="lbl">VAT %</label>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input class="inp" type="number" id="f-vat" value="20" min="0" max="100" oninput="S.vatRate=parseFloat(this.value)||0;rp()" style="flex:1;" />
+          <span style="font-size:13px;font-weight:500;color:rgba(44,26,14,0.4);">%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- From -->
+    <div class="section">
+      <div class="sec-hdr"><span class="sec-title">From</span><div class="sec-line"></div></div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <div><label class="lbl">Company Name</label><input class="inp" oninput="S.from.company=this.value;rp()" placeholder="Your Company Ltd" /></div>
+        <div><label class="lbl">Address</label><input class="inp" oninput="S.from.address=this.value;rp()" placeholder="123 Street Name" /></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+          <div><label class="lbl">City</label><input class="inp" oninput="S.from.city=this.value;rp()" placeholder="London" /></div>
+          <div><label class="lbl">Country</label><input class="inp" oninput="S.from.country=this.value;rp()" placeholder="UK" /></div>
+        </div>
+        <div><label class="lbl">Email</label><input class="inp" type="email" oninput="S.from.email=this.value;rp()" placeholder="hello@company.com" /></div>
+        <div><label class="lbl">Phone</label><input class="inp" type="tel" oninput="S.from.phone=this.value;rp()" placeholder="+44 7700 000000" /></div>
+        <div><label class="lbl">VAT Number</label><input class="inp" oninput="S.from.vatNumber=this.value;rp()" placeholder="GB 123 4567 89" /></div>
+      </div>
+    </div>
+
+    <!-- Bill To -->
+    <div class="section">
+      <div class="sec-hdr"><span class="sec-title">Bill To</span><div class="sec-line"></div></div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <div><label class="lbl">Company Name</label><input class="inp" oninput="S.to.company=this.value;rp()" placeholder="Client Company Ltd" /></div>
+        <div><label class="lbl">Address</label><input class="inp" oninput="S.to.address=this.value;rp()" placeholder="456 Client Street" /></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+          <div><label class="lbl">City</label><input class="inp" oninput="S.to.city=this.value;rp()" placeholder="Manchester" /></div>
+          <div><label class="lbl">Country</label><input class="inp" oninput="S.to.country=this.value;rp()" placeholder="UK" /></div>
+        </div>
+        <div><label class="lbl">Email</label><input class="inp" type="email" oninput="S.to.email=this.value;rp()" placeholder="accounts@client.com" /></div>
+        <div><label class="lbl">VAT Number</label><input class="inp" oninput="S.to.vatNumber=this.value;rp()" placeholder="GB 987 6543 21" /></div>
+      </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="section">
+      <div class="sec-hdr"><span class="sec-title">Line Items</span><div class="sec-line"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 46px 72px 22px;gap:4px;padding:0 2px;margin-bottom:5px;">
+        <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,26,14,0.35);">Description</span>
+        <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,26,14,0.35);text-align:center;">Qty</span>
+        <span style="font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,26,14,0.35);text-align:right;">Price</span>
+        <span></span>
+      </div>
+      <div id="items-list"></div>
+      <button onclick="addItem()"
+        style="margin-top:6px;width:100%;border:1px dashed rgba(44,26,14,0.15);background:none;color:rgba(44,26,14,0.35);font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;padding:9px;cursor:pointer;">
+        + Add Item
+      </button>
+    </div>
+
+    <!-- Notes & Terms -->
+    <div class="section">
+      <div class="sec-hdr"><span class="sec-title">Notes & Terms</span><div class="sec-line"></div></div>
+      <div style="margin-bottom:8px;">
+        <label class="lbl">Notes</label>
+        <textarea class="inp" rows="3" oninput="S.notes=this.value;rp()" placeholder="Any additional notes..." style="resize:none;"></textarea>
+      </div>
+      <div>
+        <label class="lbl">Payment Terms</label>
+        <textarea class="inp" id="f-terms" rows="3" oninput="S.paymentTerms=this.value;rp()" style="resize:none;"></textarea>
+      </div>
+    </div>
+
+  </div><!-- /edit-panel -->
+
+  <!-- PREVIEW -->
+  <div id="preview-panel" style="display:none;flex:1;background:#E8E5DC;padding:24px 16px;overflow-y:auto;align-items:flex-start;justify-content:center;">
+    <div style="width:100%;max-width:794px;box-shadow:0 20px 60px rgba(0,0,0,0.22);">
+      <div id="invoice-preview" style="background:white;min-height:500px;position:relative;overflow:hidden;"></div>
+    </div>
+  </div>
+
+</div><!-- /main-body -->
+
+<script>
+// ── STATE ──
+const today = new Date().toISOString().split('T')[0];
+const t30 = new Date(Date.now()+30*864e5).toISOString().split('T')[0];
+
+const S = {
+  type:'INVOICE', invoiceNumber:'INV-001', issueDate:today, dueDate:t30,
+  logoDataUrl:null, currency:'£', vatRate:20,
+  from:{company:'',address:'',city:'',country:'',email:'',phone:'',vatNumber:''},
+  to:{company:'',address:'',city:'',country:'',email:'',vatNumber:''},
+  items:[{id:'1',description:'',quantity:1,unitPrice:0}],
+  notes:'', paymentTerms:'Payment due within 30 days of invoice date.',
+};
+
+// Init
+document.getElementById('f-issue').value = today;
+document.getElementById('f-due').value = t30;
+document.getElementById('f-terms').value = S.paymentTerms;
+let itemCounter = 2;
+ri(); rp();
+
+// ── HELPERS ──
+function x(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fm(n){ return S.currency+Number(n).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function calc(){ const sub=S.items.reduce((a,i)=>a+i.quantity*i.unitPrice,0); const vat=sub*(S.vatRate/100); return{sub,vat,tot:sub+vat}; }
+
+// ── TYPE TOGGLE ──
+function setType(t){
+  S.type=t;
+  const p=t==='PROFORMA INVOICE';
+  document.getElementById('btn-invoice').style.cssText+=p?';background:transparent;color:rgba(255,255,255,0.4)':';background:#E8771A;color:white';
+  document.getElementById('btn-proforma').style.cssText+=p?';background:#E8771A;color:white':';background:transparent;color:rgba(255,255,255,0.4)';
+  rp();
+}
+
+// ── CURRENCY ──
+function setCurrency(c){
+  S.currency=c;
+  document.querySelectorAll('.cbtn').forEach(b=>{
+    const a=b.dataset.c===c;
+    b.style.background=a?'#2C1A0E':'white';
+    b.style.color=a?'white':'rgba(44,26,14,0.35)';
+  });
+  rp();
+}
+
+// ── LOGO ──
+function handleLogo(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    S.logoDataUrl=ev.target.result;
+    document.getElementById('logo-ph').style.display='none';
+    const img=document.getElementById('logo-img'); img.src=S.logoDataUrl; img.style.display='block';
+    document.getElementById('logo-rm').style.display='block';
+    rp();
+  };
+  r.readAsDataURL(f);
+}
+function removeLogo(){
+  S.logoDataUrl=null;
+  document.getElementById('logo-ph').style.display='block';
+  document.getElementById('logo-img').style.display='none';
+  document.getElementById('logo-rm').style.display='none';
+  document.getElementById('logo-input').value='';
+  rp();
+}
+
+// ── LINE ITEMS ──
+function addItem(){ S.items.push({id:String(itemCounter++),description:'',quantity:1,unitPrice:0}); ri(); rp(); }
+function removeItem(id){ if(S.items.length<=1)return; S.items=S.items.filter(i=>i.id!==id); ri(); rp(); }
+function uid(id,f,v){ const i=S.items.find(i=>i.id===id); if(i){i[f]=v; rp();} }
+
+function ri(){
+  document.getElementById('items-list').innerHTML=S.items.map(item=>`
+    <div style="display:grid;grid-template-columns:1fr 46px 72px 22px;gap:4px;margin-bottom:4px;align-items:center;">
+      <input class="inp" type="text" value="${x(item.description)}" placeholder="Item"
+        oninput="uid('${x(item.id)}','description',this.value)"
+        style="padding:6px 7px;font-size:12px;" />
+      <input class="inp" type="number" value="${item.quantity}" min="1"
+        oninput="uid('${x(item.id)}','quantity',parseInt(this.value)||1)"
+        style="padding:6px 3px;font-size:12px;text-align:center;" />
+      <input class="inp" type="number" value="${item.unitPrice}" min="0" step="0.01"
+        oninput="uid('${x(item.id)}','unitPrice',parseFloat(this.value)||0)"
+        style="padding:6px 5px;font-size:12px;text-align:right;" />
+      <button onclick="removeItem('${x(item.id)}')" ${S.items.length<=1?'disabled':''}
+        style="background:none;border:none;cursor:pointer;color:rgba(44,26,14,0.25);padding:2px;display:flex;align-items:center;justify-content:center;${S.items.length<=1?'opacity:0.2;':''}" >
+        <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+// ── TAB SWITCHING ──
+function showTab(t){
+  const ep=document.getElementById('edit-panel'), pp=document.getElementById('preview-panel');
+  const eb=document.getElementById('tab-edit-btn'), pb=document.getElementById('tab-preview-btn');
+  if(t==='edit'){
+    ep.style.display='block'; pp.style.display='none';
+    eb.style.background='#E8771A'; eb.style.color='white';
+    pb.style.background='transparent'; pb.style.color='rgba(255,255,255,0.4)';
+  } else {
+    ep.style.display='none'; pp.style.display='flex';
+    pb.style.background='#E8771A'; pb.style.color='white';
+    eb.style.background='transparent'; eb.style.color='rgba(255,255,255,0.4)';
+  }
+}
+
+// ── RENDER PREVIEW ──
+function rp(){
+  const {sub,vat,tot}=calc();
+  const p=S.type==='PROFORMA INVOICE';
+
+  const logo=S.logoDataUrl
+    ?`<img src="${S.logoDataUrl}" style="max-height:68px;max-width:190px;object-fit:contain;display:block;" />`
+    :S.from.company
+      ?`<div style="font-family:'Fredoka One',sans-serif;font-size:1.9rem;color:#2C1A0E;line-height:1.1;">${x(S.from.company)}</div>`
+      :`<div style="width:130px;height:46px;background:#F5F2E8;display:flex;align-items:center;justify-content:center;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,26,14,0.3);">YOUR LOGO</div>`;
+
+  const addrLines=(obj,fields)=>fields.filter(f=>obj[f]).map(f=>`<div style="font-size:12px;color:#2C1A0E;opacity:0.6;line-height:1.65;">${x(obj[f])}</div>`).join('');
+
+  const rows=S.items.map((it,i)=>`
+    <tr style="background:${i%2?'#faf9f6':'#fff'};border-bottom:1px solid rgba(44,26,14,0.06);">
+      <td style="padding:10px 14px 10px 0;font-size:12.5px;color:#2C1A0E;">${x(it.description)||'<span style="opacity:0.25">—</span>'}</td>
+      <td style="padding:10px 0;font-size:12.5px;color:#2C1A0E;text-align:center;">${it.quantity}</td>
+      <td style="padding:10px 0 10px 14px;font-size:12.5px;color:#2C1A0E;text-align:right;">${fm(it.unitPrice)}</td>
+      <td style="padding:10px 0 10px 14px;font-size:12.5px;font-weight:600;color:#2C1A0E;text-align:right;">${fm(it.quantity*it.unitPrice)}</td>
+    </tr>`).join('');
+
+  const footer=(S.notes||S.paymentTerms)?`
+    <div style="border-top:1px solid rgba(44,26,14,0.1);padding-top:22px;display:grid;grid-template-columns:${S.notes&&S.paymentTerms?'1fr 1fr':'1fr'};gap:28px;">
+      ${S.notes?`<div><div style="font-size:9px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;color:#E8771A;margin-bottom:5px;">Notes</div><div style="font-size:11.5px;color:#2C1A0E;opacity:0.6;line-height:1.75;white-space:pre-wrap;">${x(S.notes)}</div></div>`:''}
+      ${S.paymentTerms?`<div><div style="font-size:9px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;color:#E8771A;margin-bottom:5px;">Payment Terms</div><div style="font-size:11.5px;color:#2C1A0E;opacity:0.6;line-height:1.75;white-space:pre-wrap;">${x(S.paymentTerms)}</div></div>`:''}
+    </div>`:'';
+
+  document.getElementById('invoice-preview').innerHTML=`
+    <div style="position:relative;z-index:1;padding:42px 50px;font-family:'Inter',sans-serif;color:#2C1A0E;">
+      ${p?`<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:7.5rem;font-weight:900;letter-spacing:0.2em;color:#E8771A;opacity:0.05;pointer-events:none;user-select:none;white-space:nowrap;z-index:0;">PROFORMA</div>`:''}
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:26px;">
+        <div>${logo}</div>
+        <div style="text-align:right;">
+          <div style="display:inline-block;background:#2C1A0E;color:white;font-size:8.5px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;padding:5px 12px;margin-bottom:13px;">${x(S.type)}</div>
+          <div style="font-size:9.5px;color:rgba(44,26,14,0.4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">Invoice No.</div>
+          <div style="font-size:1.25rem;font-weight:700;color:#2C1A0E;margin-bottom:12px;">${x(S.invoiceNumber)||'—'}</div>
+          <div style="display:grid;grid-template-columns:auto auto;gap:3px 10px;justify-content:end;">
+            <span style="font-size:8.5px;color:rgba(44,26,14,0.4);letter-spacing:0.1em;text-transform:uppercase;text-align:right;">Issue Date</span>
+            <span style="font-size:11px;font-weight:500;">${x(S.issueDate)||'—'}</span>
+            <span style="font-size:8.5px;color:rgba(44,26,14,0.4);letter-spacing:0.1em;text-transform:uppercase;text-align:right;">Due Date</span>
+            <span style="font-size:11px;font-weight:500;">${x(S.dueDate)||'—'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:2px;background:#E8771A;margin-bottom:30px;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:32px;">
+        <div>
+          <div style="font-size:8.5px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;color:#E8771A;margin-bottom:8px;">From</div>
+          <div style="font-size:13.5px;font-weight:700;margin-bottom:3px;">${x(S.from.company)||'<span style="opacity:0.25">Company Name</span>'}</div>
+          ${addrLines(S.from,['address','city','country'])}
+          ${S.from.email?`<div style="font-size:12px;color:#2C1A0E;opacity:0.6;margin-top:5px;">${x(S.from.email)}</div>`:''}
+          ${S.from.phone?`<div style="font-size:12px;color:#2C1A0E;opacity:0.6;">${x(S.from.phone)}</div>`:''}
+          ${S.from.vatNumber?`<div style="font-size:10.5px;color:#2C1A0E;opacity:0.4;margin-top:5px;">VAT No. ${x(S.from.vatNumber)}</div>`:''}
+        </div>
+        <div>
+          <div style="font-size:8.5px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;color:#E8771A;margin-bottom:8px;">Bill To</div>
+          <div style="font-size:13.5px;font-weight:700;margin-bottom:3px;">${x(S.to.company)||'<span style="opacity:0.25">Client Name</span>'}</div>
+          ${addrLines(S.to,['address','city','country'])}
+          ${S.to.email?`<div style="font-size:12px;color:#2C1A0E;opacity:0.6;margin-top:5px;">${x(S.to.email)}</div>`:''}
+          ${S.to.vatNumber?`<div style="font-size:10.5px;color:#2C1A0E;opacity:0.4;margin-top:5px;">VAT No. ${x(S.to.vatNumber)}</div>`:''}
+        </div>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:26px;">
+        <thead>
+          <tr style="border-bottom:2px solid #2C1A0E;">
+            <th style="text-align:left;font-size:8.5px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(44,26,14,0.4);padding-bottom:7px;padding-right:14px;">Description</th>
+            <th style="text-align:center;font-size:8.5px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(44,26,14,0.4);padding-bottom:7px;width:55px;">Qty</th>
+            <th style="text-align:right;font-size:8.5px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(44,26,14,0.4);padding-bottom:7px;width:95px;padding-left:14px;">Unit Price</th>
+            <th style="text-align:right;font-size:8.5px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(44,26,14,0.4);padding-bottom:7px;width:95px;padding-left:14px;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>${rows||'<tr><td colspan="4" style="padding:14px 0;font-size:12px;color:rgba(44,26,14,0.25);text-align:center;">No items added</td></tr>'}</tbody>
+      </table>
+
+      <div style="display:flex;justify-content:flex-end;margin-bottom:36px;">
+        <div style="width:250px;">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(44,26,14,0.08);">
+            <span style="font-size:11.5px;color:rgba(44,26,14,0.5);">Subtotal</span>
+            <span style="font-size:12.5px;font-weight:500;">${fm(sub)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(44,26,14,0.08);">
+            <span style="font-size:11.5px;color:rgba(44,26,14,0.5);">VAT (${S.vatRate}%)</span>
+            <span style="font-size:12.5px;font-weight:500;">${fm(vat)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:11px 13px;background:#2C1A0E;margin-top:3px;">
+            <span style="font-size:9.5px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:white;">Total</span>
+            <span style="font-size:1rem;font-weight:700;color:#E8771A;">${fm(tot)}</span>
+          </div>
+        </div>
+      </div>
+
+      ${footer}
+      <div style="margin-top:38px;height:3px;background:linear-gradient(90deg,#E8771A 0%,#2C1A0E 100%);"></div>
+    </div>
+  `;
+}
+
+// ── PDF DOWNLOAD ──
+async function downloadPDF(){
+  showTab('preview');
+  const btn=document.getElementById('pdf-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin" style="width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;display:inline-block;"></span> Generating...';
+  try {
+    const el=document.getElementById('invoice-preview');
+    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+    const img=canvas.toDataURL('image/jpeg',0.95);
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const pw=pdf.internal.pageSize.getWidth();
+    const ph=pdf.internal.pageSize.getHeight();
+    const r=pw/canvas.width;
+    const ih=canvas.height*r;
+    if(ih<=ph){
+      pdf.addImage(img,'JPEG',0,0,pw,ih);
+    } else {
+      let y=0, hpx=ph/r;
+      while(y<canvas.height){ if(y>0)pdf.addPage(); pdf.addImage(img,'JPEG',0,-(y*r),pw,ih); y+=hpx; }
+    }
+    pdf.save(`${S.type==='PROFORMA INVOICE'?'proforma':'invoice'}-${S.invoiceNumber||'001'}.pdf`);
+  } catch(e){ alert('PDF generation failed — please try again.'); }
+  btn.disabled=false;
+  btn.innerHTML='&#8595; SAVE PDF';
+}
+</script>
+</body>
+</html>
