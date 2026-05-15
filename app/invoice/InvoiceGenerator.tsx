@@ -115,8 +115,8 @@ export default function InvoiceGenerator() {
   };
 
   const handleDownloadPDF = async () => {
-    const element = document.getElementById("invoice-preview");
-    if (!element) return;
+    const source = document.getElementById("invoice-preview");
+    if (!source) return;
     setIsGenerating(true);
     try {
       const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
@@ -124,12 +124,22 @@ export default function InvoiceGenerator() {
         import("jspdf"),
       ]);
 
-      const canvas = await html2canvas(element, {
+      // Render at A4 width (794px) so the PDF is always one page regardless of screen size
+      const clone = document.createElement("div");
+      clone.style.cssText =
+        "position:fixed;top:-9999px;left:-9999px;width:794px;background:white;z-index:-1;";
+      clone.innerHTML = source.innerHTML;
+      document.body.appendChild(clone);
+
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff",
+        width: 794,
+        windowWidth: 1200,
         logging: false,
       });
+      document.body.removeChild(clone);
 
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -141,21 +151,9 @@ export default function InvoiceGenerator() {
 
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const ratio = pageW / canvas.width;
-      const imgH = canvas.height * ratio;
-
-      if (imgH <= pageH) {
-        pdf.addImage(imgData, "JPEG", 0, 0, pageW, imgH);
-      } else {
-        // Multi-page: slice canvas into page-height chunks
-        let yPx = 0;
-        const pageHpx = pageH / ratio;
-        while (yPx < canvas.height) {
-          if (yPx > 0) pdf.addPage();
-          pdf.addImage(imgData, "JPEG", 0, -(yPx * ratio), pageW, imgH);
-          yPx += pageHpx;
-        }
-      }
+      // Fit entire invoice to one page — scale down if content is tall
+      const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+      pdf.addImage(imgData, "JPEG", 0, 0, canvas.width * ratio, canvas.height * ratio);
 
       const filename = `${data.type === "PROFORMA INVOICE" ? "proforma" : "invoice"}-${data.invoiceNumber || "001"}.pdf`;
       pdf.save(filename);

@@ -417,21 +417,24 @@ async function downloadPDF(){
   btn.disabled=true;
   btn.innerHTML='<span class="spin" style="width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;display:inline-block;"></span> Generating...';
   try {
-    const el=document.getElementById('invoice-preview');
-    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+    // Clone at A4 width (794px) so the output is always one page regardless of screen size
+    const source=document.getElementById('invoice-preview');
+    const clone=document.createElement('div');
+    clone.style.cssText='position:fixed;top:-9999px;left:-9999px;width:794px;background:white;z-index:-1;';
+    clone.innerHTML=source.innerHTML;
+    document.body.appendChild(clone);
+
+    const canvas=await html2canvas(clone,{scale:2,useCORS:true,backgroundColor:'#fff',width:794,windowWidth:1200,logging:false});
+    document.body.removeChild(clone);
+
     const img=canvas.toDataURL('image/jpeg',0.95);
     const {jsPDF}=window.jspdf;
     const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const pw=pdf.internal.pageSize.getWidth();
     const ph=pdf.internal.pageSize.getHeight();
-    const r=pw/canvas.width;
-    const ih=canvas.height*r;
-    if(ih<=ph){
-      pdf.addImage(img,'JPEG',0,0,pw,ih);
-    } else {
-      let y=0, hpx=ph/r;
-      while(y<canvas.height){ if(y>0)pdf.addPage(); pdf.addImage(img,'JPEG',0,-(y*r),pw,ih); y+=hpx; }
-    }
+    // Fit everything to one page — scale down if needed
+    const r=Math.min(pw/canvas.width, ph/canvas.height);
+    pdf.addImage(img,'JPEG',0,0,canvas.width*r,canvas.height*r);
     pdf.save(`${S.type==='PROFORMA INVOICE'?'proforma':'invoice'}-${S.invoiceNumber||'001'}.pdf`);
   } catch(e){ alert('PDF generation failed — please try again.'); }
   btn.disabled=false;
