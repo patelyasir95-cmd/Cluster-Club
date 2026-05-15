@@ -87,6 +87,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 export default function InvoiceGenerator() {
   const [data, setData] = useState<InvoiceData>(defaultData);
+  const [isGenerating, setIsGenerating] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const set = (patch: Partial<InvoiceData>) => setData((d) => ({ ...d, ...patch }));
@@ -113,7 +114,55 @@ export default function InvoiceGenerator() {
     reader.readAsDataURL(file);
   };
 
-  const handlePrint = () => window.print();
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById("invoice-preview");
+    if (!element) return;
+    setIsGenerating(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pdf = new (jsPDF as any)({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const ratio = pageW / canvas.width;
+      const imgH = canvas.height * ratio;
+
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, "JPEG", 0, 0, pageW, imgH);
+      } else {
+        // Multi-page: slice canvas into page-height chunks
+        let yPx = 0;
+        const pageHpx = pageH / ratio;
+        while (yPx < canvas.height) {
+          if (yPx > 0) pdf.addPage();
+          pdf.addImage(imgData, "JPEG", 0, -(yPx * ratio), pageW, imgH);
+          yPx += pageHpx;
+        }
+      }
+
+      const filename = `${data.type === "PROFORMA INVOICE" ? "proforma" : "invoice"}-${data.invoiceNumber || "001"}.pdf`;
+      pdf.save(filename);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F2E8] flex flex-col">
@@ -148,10 +197,21 @@ export default function InvoiceGenerator() {
         </div>
 
         <button
-          onClick={handlePrint}
-          className="bg-[#E8771A] text-white text-[11px] font-bold tracking-[0.2em] uppercase px-6 py-2.5 hover:bg-[#d06810] transition-colors"
+          onClick={handleDownloadPDF}
+          disabled={isGenerating}
+          className="bg-[#E8771A] text-white text-[11px] font-bold tracking-[0.2em] uppercase px-6 py-2.5 hover:bg-[#d06810] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          Download PDF
+          {isGenerating ? (
+            <>
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
+                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+              Generating...
+            </>
+          ) : (
+            "Save as PDF"
+          )}
         </button>
       </div>
 
