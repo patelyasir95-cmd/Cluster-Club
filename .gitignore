@@ -51,3 +51,7 @@ next-env.d.ts
 # Claude agents
 /.agents/
 /.claude/
+
+# intermediate files
+.tmp/
+.wrangler/

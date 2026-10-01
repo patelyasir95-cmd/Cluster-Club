@@ -9,6 +9,7 @@ export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -17,6 +18,7 @@ export default function Contact() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(false);
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -24,8 +26,9 @@ export default function Contact() {
         body: JSON.stringify(form),
       });
       if (res.ok) setSubmitted(true);
+      else setError(true);
     } catch {
-      setSubmitted(true);
+      setError(true);
     }
     setLoading(false);
   };
@@ -126,6 +129,11 @@ export default function Contact() {
                   >
                     {loading ? "Sending..." : "Send Message"}
                   </button>
+                  {error && (
+                    <p role="alert" className="text-[#B3261E] text-sm">
+                      Sorry, your message didn&apos;t send. Please try again in a moment.
+                    </p>
+                  )}
                 </motion.form>
               ) : (
                 <motion.div

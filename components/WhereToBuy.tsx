@@ -1,27 +1,40 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
+
+const STOCKISTS = [
+  {
+    name: "EG On The Move",
+    detail: "Forecourt & convenience stores across the UK",
+    logo: "/egotm-logo.svg",
+    locatorUrl: "https://eg-otm.com/locator",
+  },
+];
 
 export default function WhereToBuy() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
+    setError(false);
     try {
-      await fetch("/.netlify/functions/subscribe", {
+      const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+      if (res.ok) setSubmitted(true);
+      else setError(true);
     } catch {
-      // silent fail — still show success
+      setError(true);
     }
-    setSubmitted(true);
     setLoading(false);
   };
 
@@ -49,11 +62,38 @@ export default function WhereToBuy() {
 
             <div className="w-12 h-0.5 bg-[#E8771A] mb-8" />
 
+            <ul className="mb-12">
+              {STOCKISTS.map((stockist) => (
+                <li key={stockist.name}>
+                  <a
+                    href={stockist.locatorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-5 sm:gap-6 border border-[#2C1A0E]/15 bg-white px-5 py-5 sm:px-6 hover:border-[#E8771A] transition-colors duration-300"
+                  >
+                    <Image
+                      src={stockist.logo}
+                      alt={`${stockist.name} logo`}
+                      width={88}
+                      height={60}
+                      className="w-[72px] sm:w-[88px] h-auto shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[#2C1A0E]/60 text-sm">{stockist.detail}</p>
+                      <p className="text-[#E8771A] text-xs font-bold tracking-[0.15em] uppercase mt-3 group-hover:underline">
+                        Find your nearest store&nbsp;→
+                      </p>
+                    </div>
+                  </a>
+                </li>
+              ))}
+            </ul>
+
             <p className="text-[#2C1A0E]/70 text-base lg:text-lg font-light leading-relaxed mb-2">
-              We&apos;re working hard behind the scenes.
+              More stockists coming soon.
             </p>
-            <p className="text-[#2C1A0E]/50 text-sm leading-relaxed mb-12">
-              Big things are coming. Be the first to know when Cluster Club lands near you.
+            <p className="text-[#2C1A0E]/50 text-sm leading-relaxed mb-8">
+              Be the first to know when Cluster Club lands near you.
             </p>
 
             {!submitted ? (
@@ -87,6 +127,11 @@ export default function WhereToBuy() {
                   You&apos;re on the list. We&apos;ll be in touch.
                 </p>
               </motion.div>
+            )}
+            {!submitted && error && (
+              <p role="alert" className="text-[#B3261E] text-sm mt-3">
+                Sorry, that didn&apos;t go through. Please try again in a moment.
+              </p>
             )}
           </motion.div>
         </div>
